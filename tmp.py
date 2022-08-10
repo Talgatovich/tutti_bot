@@ -1,6 +1,13 @@
 import requests
+from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
 
-url = "http://www.notomania.ru/poisk.php"
+ua = UserAgent().random
+headers = {'User-Agent': ua}
+
+url = "http://www.notomania.ru/"
 data = {"question": "лето"}
-response = requests.post(url=url, data=())
-print(response.text)
+page = requests.get(url=url, headers=headers) # data=('Бах').encode('utf-8'))
+soup = BeautifulSoup(page.text, "html.parser")
+soup.encode('utf-8').decode('utf-8')
+print(soup)
