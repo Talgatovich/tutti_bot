@@ -1,7 +1,11 @@
 import os
 
 from dotenv import load_dotenv
-from telegram import ReplyKeyboardMarkup
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    ReplyKeyboardMarkup,
+)
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 load_dotenv()
@@ -16,7 +20,7 @@ def say_hi(update, context):
     # и сохраняем в переменную chat
     chat = update.effective_chat
     # print(chat)
-    print(update)
+    # print(update)
     # В ответ на любое текстовое сообщение
     # будет отправлено 'Привет, я KittyBot!'
     context.bot.send_message(
@@ -31,16 +35,22 @@ def wake_up(update, context):
     button = ReplyKeyboardMarkup([["Начать"]], resize_keyboard=True)
     context.bot.send_message(
         chat_id=chat.id,
-        text=f"Спасибо, что включили меня, {chat.first_name}",
+        text=f"Спасибо, что включили меня, {chat.first_name}! Напишите фамилию композитора",
         reply_markup=button,
     )
+
+
+def ask_me(update, context):
+    chat = update.effective_chat
+    context.bot.send_message(chat_id=chat.id, text="Уже ищу")
+    print(update)
 
 
 # Регистрируется обработчик MessageHandler;
 # из всех полученных сообщений он будет выбирать только текстовые сообщения
 # и передавать их в функцию say_hi()
 updater.dispatcher.add_handler(CommandHandler("start", wake_up))
-updater.dispatcher.add_handler(MessageHandler(Filters.text, say_hi))
+updater.dispatcher.add_handler(MessageHandler(Filters.text, ask_me))
 
 
 # Метод start_polling() запускает процесс polling,
