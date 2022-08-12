@@ -26,13 +26,14 @@ def main_page():
 
 
 def search_author(second_name, data):
-    current_url = URL + data[second_name[0]]
+    if len(second_name) == 0:
+        return None
+    current_url = URL + data[second_name[0].upper()]
     page = requests.get(url=current_url, headers=HEADERS)
     soup = BeautifulSoup(page.text, "lxml")
     tail = ""
     for link in soup.find_all("a"):
-        # print(soup.find_all("a"))
-        if second_name in link.text:
+        if second_name.lower() in link.text.lower():
             tail = link.get("href")[1::]
             compositions_url = URL + tail
             return compositions_url
@@ -40,6 +41,8 @@ def search_author(second_name, data):
 
 
 def search_composition(compositions_url, title):
+    if len(title) == 0:
+        return None
     if compositions_url is not None:
         response = requests.get(compositions_url, headers=HEADERS)
         soup = BeautifulSoup(response.text, "lxml")
@@ -73,12 +76,13 @@ def download_notes(link):
         links = soup.find_all(
             "span",
             class_="file file--mime-application-zip file--package-x-generic",
-        )
+        )  # 'clearfix text-formatted field field--name-body field--type-text-with-summary field--label-hidden field__item'
         if links == []:
             links = soup.find_all(
                 "span",
                 class_="field-content",
             )
+        print(links)
         for val in links:
             dowload_link = val.a.get("href")
             return dowload_link
@@ -90,6 +94,6 @@ def download_notes(link):
 # Придумать решение если нет такого названия в базе
 
 data = main_page()
-compositions_url = search_author("Зейдлер", data)
-link = search_composition(compositions_url, "Вокализ")
+compositions_url = search_author("Blackmore's Night", data)
+link = search_composition(compositions_url, "Wish you")
 print(download_notes(link))
