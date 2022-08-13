@@ -6,19 +6,20 @@ from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
 
 import my_parser
 
+TEXT = "Напишите фамилию композитора и название произведения через дефис"
+
 load_dotenv()
 bot_token = os.getenv("BOT_TOKEN")
-
 updater = Updater(token=bot_token)
 
 
 def wake_up(update, context):
     chat = update.effective_chat
+    name = chat.first_name
     button = ReplyKeyboardMarkup([["start"], ["search"]], resize_keyboard=True)
     context.bot.send_message(
         chat_id=chat.id,
-        text=f"Здравствуйте, {chat.first_name}! Спасибо, что включили меня!"
-        "Напишите фамилию композитора и название произведения через дефис",
+        text=f"Здравствуйте, {name}! Спасибо, что включили меня! {TEXT}",
         reply_markup=button,
     )
 
@@ -27,7 +28,7 @@ def search(update, context):
     chat = update.effective_chat
     context.bot.send_message(
         chat_id=chat.id,
-        text="Напишите фамилию композитора и название произведения через дефис",
+        text=TEXT,
     )
 
 
@@ -36,12 +37,12 @@ def ask_me(update, context):
     search = update["message"]["text"].split("-")
 
     try:
-        author = search[0]
-        title = search[1]
+        author = search[0].strip()
+        title = search[1].strip()
     except IndexError:
         context.bot.send_message(
             chat_id=chat.id,
-            text="Напишите фамилию композитора и название произведения через дефис",
+            text=TEXT,
         )
         return
 
@@ -50,13 +51,14 @@ def ask_me(update, context):
         compositions_url = my_parser.search_author(author, data)
         link = my_parser.search_composition(compositions_url, title)
         dowload_link = my_parser.download_notes(link)
-        context.bot.send_document(chat_id=chat.id, document=dowload_link)
     except Exception:
         context.bot.send_message(
-            chat_id=chat.id,
-            text="Что-то пошло не так! :( "
-            "Напишите фамилию композитора и название произведения через дефис",
+            chat_id=chat.id, text=f"Что-то пошло не так! :(  {TEXT}"
         )
+    try:
+        context.bot.send_document(chat_id=chat.id, document=dowload_link)
+    except Exception:
+        context.bot.send_message(chat_id=chat.id, text=dowload_link)
 
 
 if __name__ == "__main__":

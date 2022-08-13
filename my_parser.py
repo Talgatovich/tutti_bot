@@ -5,9 +5,18 @@ from fake_useragent import UserAgent
 ua = UserAgent().random
 HEADERS = {"User-Agent": ua}
 URL = "https://musicnotes.info/"
+ERROR_TEXT = (
+    "К сожалению, такая композиция не найдена. "
+    "Напишите мне чтобы поискать что-то ещё"
+)
 
 
 def main_page():
+    """
+    Парсит главную страницу(блок с алфавитным указателем) и возвращает словарь,
+    в котором ключи - буквы алфавита, значения - ссылки.
+
+    """
     data = {}
     try:
         page = requests.get(url=URL, headers=HEADERS)
@@ -26,6 +35,10 @@ def main_page():
 
 
 def search_author(second_name, data):
+    """
+    Принимает на вход фамилию автора и словарь из функции main_page.
+    По фамилии находит страницу композиций автора и возвращает ссылку на неё
+    """
     if len(second_name) == 0 or len(data) == 0:
         return None
     try:
@@ -36,7 +49,7 @@ def search_author(second_name, data):
     soup = BeautifulSoup(page.text, "lxml")
     tail = ""
     for link in soup.find_all("a"):
-        if second_name.lower() in link.text.lower():
+        if second_name.lower().strip() in link.text.lower():
             tail = link.get("href")[1::]
             compositions_url = URL + tail
             return compositions_url
@@ -44,6 +57,10 @@ def search_author(second_name, data):
 
 
 def search_composition(compositions_url, title):
+    """
+    Принимает на вход ссылку на страницу с композициями определённого автора и
+    название произведения, и возвращает ссылку на неё.
+    """
     if len(title) == 0:
         return None
     compositions_data = {}
@@ -74,6 +91,9 @@ def search_composition(compositions_url, title):
 
 
 def download_notes(link):
+    """
+    На странице произведения ищет ссылку на скачивание и возвращает её
+    """
     if link is not None:
         response = requests.get(link, headers=HEADERS)
         soup = BeautifulSoup(response.text, "lxml")
@@ -92,25 +112,17 @@ def download_notes(link):
                 "div",
                 class_="node__content",
             )
+        if link == []:
+            links = soup.find_all(
+                "div",
+                class_="view-content",
+            )
+
         for val in links:
             dowload_link = val.a.get("href")
             if URL in dowload_link:
                 return dowload_link
-            elif URL not in dowload_link and "www.litres.ru" in dowload_link:
-                return dowload_link
+            elif "www.litres.ru" in dowload_link:
+                return link
             return URL + dowload_link[1::]
-    return (
-        "К сожалению, такая композиция не найдена. "
-        "Напишите мне чтобы поискать что-то ещё"
-    )
-
-
-# Пройти по ссылке, найти ссылку скачивания и узнать как передать клиенту скачанный файл
-# Посмотри send_file для бота
-# Придумать решение если нет такого названия в базе
-
-# data = main_page()
-# compositions_url = search_author("Даргомыжский", data)
-# link = search_composition(compositions_url, "Только узнал я")
-# print(download_notes(link))
-#
+    return ERROR_TEXT
