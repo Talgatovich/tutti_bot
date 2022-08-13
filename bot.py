@@ -1,60 +1,67 @@
 import os
 
 from dotenv import load_dotenv
-from telegram import (
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-)
+from telegram import ReplyKeyboardMarkup
 from telegram.ext import CommandHandler, Filters, MessageHandler, Updater
+
+import my_parser
 
 load_dotenv()
 bot_token = os.getenv("BOT_TOKEN")
 
 updater = Updater(token=bot_token)
-url = "http://www.notomania.ru/noty_pesni.php?n=1641#"
-
-
-def say_hi(update, context):
-    # Получаем информацию о чате, из которого пришло сообщение,
-    # и сохраняем в переменную chat
-    chat = update.effective_chat
-    # print(chat)
-    # print(update)
-    # В ответ на любое текстовое сообщение
-    # будет отправлено 'Привет, я KittyBot!'
-    context.bot.send_message(
-        chat_id=chat.id, text=f"Привет, {chat.first_name}!"
-    )
 
 
 def wake_up(update, context):
-    # В ответ на команду /start
-    # будет отправлено сообщение 'Спасибо, что включили меня'
     chat = update.effective_chat
-    button = ReplyKeyboardMarkup([["Начать"]], resize_keyboard=True)
+    button = ReplyKeyboardMarkup([["start"], ["search"]], resize_keyboard=True)
     context.bot.send_message(
         chat_id=chat.id,
-        text=f"Спасибо, что включили меня, {chat.first_name}! Напишите фамилию композитора",
+        text=f"Здравствуйте, {chat.first_name}! Спасибо, что включили меня!"
+        "Напишите фамилию композитора и название произведения через дефис",
         reply_markup=button,
+    )
+
+
+def search(update, context):
+    chat = update.effective_chat
+    context.bot.send_message(
+        chat_id=chat.id,
+        text="Напишите фамилию композитора и название произведения через дефис",
     )
 
 
 def ask_me(update, context):
     chat = update.effective_chat
-    context.bot.send_message(chat_id=chat.id, text="Уже ищу")
-    print(update)
+    search = update["message"]["text"].split("-")
+
+    try:
+        author = search[0]
+        title = search[1]
+    except IndexError:
+        context.bot.send_message(
+            chat_id=chat.id,
+            text="Напишите фамилию композитора и название произведения через дефис",
+        )
+        return
+
+    try:
+        data = my_parser.main_page()
+        compositions_url = my_parser.search_author(author, data)
+        link = my_parser.search_composition(compositions_url, title)
+        dowload_link = my_parser.download_notes(link)
+        context.bot.send_document(chat_id=chat.id, document=dowload_link)
+    except Exception:
+        context.bot.send_message(
+            chat_id=chat.id,
+            text="Что-то пошло не так! :( "
+            "Напишите фамилию композитора и название произведения через дефис",
+        )
 
 
-# Регистрируется обработчик MessageHandler;
-# из всех полученных сообщений он будет выбирать только текстовые сообщения
-# и передавать их в функцию say_hi()
-updater.dispatcher.add_handler(CommandHandler("start", wake_up))
-updater.dispatcher.add_handler(MessageHandler(Filters.text, ask_me))
-
-
-# Метод start_polling() запускает процесс polling,
-# приложение начнёт отправлять регулярные запросы для получения обновлений.
-updater.start_polling()
-# Бот будет работать до тех пор, пока не нажмете Ctrl-C
-updater.idle()
+if __name__ == "__main__":
+    updater.dispatcher.add_handler(CommandHandler("start", wake_up))
+    updater.dispatcher.add_handler(CommandHandler("search", search))
+    updater.dispatcher.add_handler(MessageHandler(Filters.text, ask_me))
+    updater.start_polling()
+    updater.idle()
